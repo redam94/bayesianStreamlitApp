@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import theano.tensor as tt
 import arviz as az
 import streamlit as st
+import streamlit.components as components
 import utils
 
 @st.cache
@@ -69,5 +70,6 @@ if upload_file:
       trace = approx.sample(draws=10_000)
     
     with st.spinner("Plotting traces"):
-      fig = utils.visualizer.plot_trace(model, trace)
+      fig_html, fig = utils.visualizer.plot_trace(model, trace)
+      #components.v1.html(fig_html, height=2000)
       st.pyplot(fig)

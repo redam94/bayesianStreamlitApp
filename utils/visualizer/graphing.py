@@ -1,5 +1,6 @@
 import arviz as az 
 import matplotlib.pyplot as plt
+import mpld3
 
 def plot_trace(model, trace, var_names=None):
   
@@ -11,5 +12,5 @@ def plot_trace(model, trace, var_names=None):
   
   with model:
     az.plot_trace(trace, var_names=var_names, axes=ax)
-  
-  return fig
+  fig_html = mpld3.fig_to_html(fig)
+  return fig_html, fig
