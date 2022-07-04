@@ -3,17 +3,11 @@ channels:
   - conda-forge
   - default
 dependencies:
-  - python=3.9
-  - jupyter
-  - ipykernel
   - numpy
   - pandas
-  - blas
   - pymc3
-  - scikit-learn
   - matplotlib
   - pip
   - pip:
-    - bambi
     - arviz
     - streamlit
