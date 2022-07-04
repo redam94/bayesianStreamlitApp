@@ -1,7 +1,6 @@
-name: streamlit-bayes-pymc3
+name: base
 channels:
   - conda-forge
-  - default
 dependencies:
   - numpy
   - pandas
