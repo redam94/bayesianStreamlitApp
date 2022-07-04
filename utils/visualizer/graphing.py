@@ -14,3 +14,6 @@ def plot_trace(model, trace, var_names=None):
     az.plot_trace(trace, var_names=var_names, axes=ax)
   fig_html = mpld3.fig_to_html(fig)
   return fig_html, fig
+
+def save_html(fig_html):
+  pass
