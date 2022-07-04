@@ -10,7 +10,9 @@ period_var = st.session_state.get("period_var", None)
 geos = st.session_state.get("geos", None)
 model = st.session_state.get("model", None)
 fig = None
-  
+inference = st.session_state.get("inference", None)
+trace = st.session_state.get("trace", None)
+
 if model is not None:
   with st.spinner("Running Inference"):
     inference, approx = utils.models.bayesianMMM.run_inference(model)
@@ -26,3 +28,7 @@ if model is not None:
 if fig is not None:
   with st.expander("Show trace plot"):
     st.pyplot(fig)
+
+if trace is not None:
+  with st.expander("Show inference results"):
+    st.write(utils.stats.summarize_trace(trace, ["α", "β_coeff", "media_coeffs"]))

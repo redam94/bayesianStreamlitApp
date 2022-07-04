@@ -30,6 +30,11 @@ dependent_var = None
 period_var = None
 model = None
 
+@st.cache(allow_output_mutation=True)
+def get_profile(df):
+  profile = pp.ProfileReport(df, dark_mode=True, sensitive=True)
+  return profile
+
 if upload_file is None:
   upload_file = st.file_uploader("Upload a CSV file", type=".csv", key="upload_file")
 
@@ -38,7 +43,9 @@ if upload_file:
   df = read_data(st.session_state["upload_file"])
   st.session_state["df"] = df
   st.dataframe(df)
-  stprofile.st_profile_report(df.profile_report())
+  profile = get_profile(df)
+  with st.expander("Report", expanded=True):
+    stprofile.st_profile_report(profile)
 
   
 
