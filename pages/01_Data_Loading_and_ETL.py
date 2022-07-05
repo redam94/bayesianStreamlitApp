@@ -19,10 +19,10 @@ def main(file):
 st.markdown("""
   # Bayesian Linear Regression
   ---
-  ## 1. Upload data
-  """)
+""")
 
-upload_file = None
+upload_file = st.session_state.get("upload_file", None)
+df = st.session_state.get("df", None)
 geos = None
 media_vars = None
 control_vars = None
@@ -35,13 +35,24 @@ def get_profile(df):
   profile = pp.ProfileReport(df, dark_mode=True, sensitive=True)
   return profile
 
-if upload_file is None:
+if st.session_state.get("upload_file", None) is None or st.session_state.get("file_failed", False):
+  st.markdown("## 1. Upload Data")
   upload_file = st.file_uploader("Upload a CSV file", type=".csv", key="upload_file")
 
 if upload_file:
-  st.markdown("## 2. Data Preview")
-  df = read_data(st.session_state["upload_file"])
-  st.session_state["df"] = df
+  st.markdown("""
+              ## File Uploaded!""")
+  with st.spinner("Reading File"):
+    try:
+      df = read_data(st.session_state["upload_file"])
+      st.session_state["df"] = df
+      st.success("File Read Successfully")
+    except:
+      st.session_state["file_failed"] = True
+      st.error("Error reading file")
+  
+
+if df is not None:
   st.dataframe(df)
   profile = get_profile(df)
   with st.expander("Report", expanded=True):

@@ -5,6 +5,9 @@ import streamlit as st
 
 def create_model(df, media_col_names, dependent_col_names, control_col_names=None, geo_col_names=None, model=None):
   
+  if (media_col_names is None and control_col_names is None):
+    raise ValueError("Must select at least one media or control variable")
+  
   n_idx = len(df)
   
   n_media_vars = len(media_col_names)
@@ -76,7 +79,7 @@ def create_model(df, media_col_names, dependent_col_names, control_col_names=Non
         control_contributions = pm.Deterministic("control_contributions", control_vars*control_coeffs, dims=["ids", "control_cols"])
       
       incremental_sales_control = pm.math.sum(control_contributions, axis=1)
-      total_sales = pm.math.sum(incremental_sales_media + incremental_sales_control, axis=1)
+      total_sales = incremental_sales_control + incremental_sales_media
       
     
     y = pm.Normal("incremental_sales_like", mu=total_sales, sigma=sigma, observed=dependent, dims="ids")
