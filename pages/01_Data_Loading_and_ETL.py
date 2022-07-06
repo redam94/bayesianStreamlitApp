@@ -23,21 +23,26 @@ st.markdown("""
 
 upload_file = st.session_state.get("upload_file", None)
 df = st.session_state.get("df", None)
-geos = None
-media_vars = None
-control_vars = None
-dependent_var = None
-period_var = None
-model = None
 
 @st.cache(allow_output_mutation=True)
 def get_profile(df):
   profile = pp.ProfileReport(df, dark_mode=True, sensitive=True)
   return profile
 
-if st.session_state.get("upload_file", None) is None or st.session_state.get("file_failed", False):
+def change_df():
+  st.session_state["geos_old"] = None
+  st.session_state["media_vars_old"] = None
+  st.session_state["control_vars_old"] = None
+  st.session_state["dependent_var_old"] = None
+  st.session_state["period_var_old"] = None
+
+use_test = st.checkbox("Use test data", value=False)
+if not use_test or st.session_state.get("upload_file", None) is None or st.session_state.get("file_failed", False):
   st.markdown("## 1. Upload Data")
   upload_file = st.file_uploader("Upload a CSV file", type=".csv", key="upload_file")
+if use_test:
+  df = read_data("./data/test.csv")
+  st.session_state['df'] = df
 
 if upload_file:
   st.markdown("""

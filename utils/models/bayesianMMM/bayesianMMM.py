@@ -1,5 +1,8 @@
 import pymc3 as pm
 import numpy as np
+import theano
+import theano.tensor as tt
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler
 import streamlit as st 
 
 
@@ -8,24 +11,37 @@ def create_model(df, media_col_names, dependent_col_names, control_col_names=Non
   if (media_col_names is None and control_col_names is None):
     raise ValueError("Must select at least one media or control variable")
   
-  n_idx = len(df)
+  media_transformer = None
+  control_transformer = None
+  geos_encoder = None
   
-  n_media_vars = len(media_col_names)
-  media_vars = df[media_col_names].values
+  n_idx = len(df)
+  n_media_vars = 1
+  if media_col_names:
+    n_media_vars = len(media_col_names)
+    media_transformer = MinMaxScaler()
+    
+    media_vars = df[media_col_names].values
+    media_vars = media_transformer.fit_transform(media_vars)
+    
   
   dependent = df[dependent_col_names].values
   
   n_geos = 1
   if geo_col_names:
     geos = df[geo_col_names].values.reshape(-1)
+    geos_encoder = LabelEncoder()
+    geos = geos_encoder.fit_transform(geos)
     n_geos = np.unique(geos).shape[0]
   
   n_control_vars = 1
   if control_col_names:
     control_vars = df[control_col_names].values
+    control_transformer = MinMaxScaler()
+    control_vars = control_transformer.fit_transform(control_vars)
     n_control_vars = len(control_col_names)
     
-  maxs = media_vars.max(axis=0)
+  
   
   coords = {
     "geos": np.arange(n_geos),
@@ -39,36 +55,35 @@ def create_model(df, media_col_names, dependent_col_names, control_col_names=Non
   with model:
     if geo_col_names:
       geo_idx = pm.Data("geographies", geos, dims="ids")
-    
-    media_vars = pm.Data("media_vars", media_vars , dims=["ids", "media_cols"])
-    
     sigma = pm.HalfCauchy("sigma", 5)
+    incremental_sales_media = 0
+    if media_col_names:
+      media_vars = pm.Data("media_vars", media_vars , dims=["ids", "media_cols"])
+      media_coeffs_mu = pm.Normal("media_coeffs_mu", sigma=100, dims="media_cols")
+      if geo_col_names:
+        media_coeffs_geos = pm.Normal("media_coeffs_geos", sigma=1, dims=["geos", "media_cols"])
+        media_coeffs_sigma = pm.HalfCauchy("media_coeffs_sigma", 5)
+        media_coeffs = pm.Deterministic("media_coeffs", media_coeffs_mu + media_coeffs_geos*media_coeffs_sigma, dims=["geos", "media_cols"])
+      else:
+        media_coeffs = pm.Deterministic("media_coeffs", media_coeffs_mu, dims="media_cols")
+    
+      alphas = pm.Uniform("α", .8, 1, dims="media_cols")
+      betas_coeff = pm.Uniform("β_coeff", 1, 15, dims="media_cols")
+      betas =pm.Deterministic("β", 10**(-betas_coeff))
 
-    media_coeffs_mu = pm.HalfNormal("media_coeffs_mu", sigma=10, dims="media_cols")
-    if geo_col_names:
-      media_coeffs_geos = pm.Normal("media_coeffs_geos", sigma=1, dims=["geos", "media_cols"])
-      media_coeffs_sigma = pm.HalfCauchy("media_coeffs_sigma", 5)
-      media_coeffs = pm.Deterministic("media_coeffs", media_coeffs_mu + media_coeffs_geos*media_coeffs_sigma, dims=["geos", "media_cols"])
-    else:
-      media_coeffs = pm.Deterministic("media_coeffs", media_coeffs_mu, dims="media_cols")
     
-    alphas = pm.Uniform("α", .8, 1, dims="media_cols")
-    betas_coeff = pm.Uniform("β_coeff", 1, 15, dims="media_cols")
-    betas =pm.Deterministic("β", 10**(-betas_coeff))
-
+      media_transformed = betas**(alphas**(media_vars*100))
+      if geo_col_names:
+        media_contributions = pm.Deterministic("media_contributions", media_transformed*media_coeffs[geo_idx], dims=["ids", "media_cols"])
+      else:
+        media_contributions = pm.Deterministic("media_contributions", media_transformed*media_coeffs, dims=["ids", "media_cols"])
+      incremental_sales_media = pm.math.sum(media_contributions, axis=1)
     
-    media_transformed = betas**(alphas**(media_vars/maxs*100))
-    if geo_col_names:
-      media_contributions = pm.Deterministic("media_contributions", media_transformed*media_coeffs[geo_idx], dims=["ids", "media_cols"])
-    else:
-      media_contributions = pm.Deterministic("media_contributions", media_transformed*media_coeffs, dims=["ids", "media_cols"])
-    incremental_sales_media = pm.math.sum(media_contributions, axis=1)
-    
-    total_sales = incremental_sales_media
+      total_sales = incremental_sales_media
     
     if control_col_names:
       control_vars = pm.Data("control_vars", control_vars, dims=["ids", "control_cols"])
-      control_coeffs_mu = pm.HalfNormal("control_coeffs_mu", sigma=10, dims="control_cols")
+      control_coeffs_mu = pm.Normal("control_coeffs_mu", sigma=100, dims="control_cols")
       if geo_col_names:
         control_coeffs_geos = pm.Normal("control_coeffs_geos", sigma=1, dims=["geos", "control_cols"])
         control_coeffs_sigma = pm.HalfCauchy("control_coeffs_sigma", 5)
@@ -83,7 +98,7 @@ def create_model(df, media_col_names, dependent_col_names, control_col_names=Non
       
     
     y = pm.Normal("incremental_sales_like", mu=total_sales, sigma=sigma, observed=dependent, dims="ids")
-  return model
+  return model, media_transformer, control_transformer, geos_encoder
 
 
 def run_inference(model):
@@ -91,3 +106,21 @@ def run_inference(model):
     inference = pm.FullRankADVI()
     approx = pm.fit(100_000, method=inference)
   return inference, approx
+
+def make_predictor(df, model, approx):
+  
+  x = tt.matrix("X")
+  geos = tt.vector("geos", dtype='int64')
+  n = tt.iscalar("n")
+  x.tag.test_value = np.empty_like(df[[f"X{i}" for i in range(1, 1+n_cols)]][:10])
+  geos.tag.test_value = np.empty_like(df_test['Geo'][:10])
+  n.tag.test_value = 100
+  _sample_proba = approx.sample_node(test_model.incremental_sales_like.distribution.mean, 
+                                   size=n, 
+                                   more_replacements={test_model["x"]: x, test_model["geographies"]: geos})
+  _sample_contributions = approx.sample_node(test_model.Channel_contributions,
+                                           size=n,
+                                           more_replacements={test_model["x"]: x, test_model["geographies"]:geos})
+
+  sample_proba = theano.function([x, geos, n], _sample_proba)
+  sample_contributions = theano.function([x, geos, n], _sample_contributions)
