@@ -4,5 +4,5 @@ port = 8501
 
 
 [browser]
-serverAddress = "localhost"
+serverAddress = "regression.machineintelligence.ddns.net"
 serverPort=8501
