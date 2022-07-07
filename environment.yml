@@ -16,7 +16,7 @@ dependencies:
   - ca-certificates=2022.6.15
   - cachetools=5.0.0
   - cairo=1.16.0
-  - cctools=973.0.1
+#  - cctools=973.0.1
   - cctools_osx-arm64=973.0.1
   - certifi=2022.6.15
   - cffi=1.15.1
@@ -70,7 +70,7 @@ dependencies:
   - kiwisolver=1.4.3
   - krb5=1.19.3
   - lcms2=2.12
-  - ld64=609
+#  - ld64=609
   - ld64_osx-arm64=609
   - lerc=3.0
   - libblas=3.9.0
@@ -86,8 +86,8 @@ dependencies:
   - libev=4.33
   - libffi=3.4.2
   - libgd=2.3.3
-  - libgfortran=5.0.0.dev0
-  - libgfortran5=11.0.1.dev0
+#  - libgfortran=5.0.0.dev0
+#  - libgfortran5=11.0.1.dev0
   - libglib=2.70.2
   - libiconv=1.16
   - liblapack=3.9.0
@@ -260,4 +260,4 @@ dependencies:
     - webencodings==0.5.1
     - widgetsnbextension==3.6.1
     - xarray-einstats==0.3.0
-prefix: /Users/mreda/opt/anaconda3/envs/streamlit-cloud-bayes-pymc3
+#prefix: /Users/mreda/opt/anaconda3/envs/streamlit-cloud-bayes-pymc3
