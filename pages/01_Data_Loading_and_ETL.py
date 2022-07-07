@@ -22,6 +22,7 @@ st.markdown("""
 """)
 
 upload_file = st.session_state.get("upload_file", None)
+
 df = st.session_state.get("df", None)
 
 @st.cache(allow_output_mutation=True)
@@ -45,6 +46,7 @@ if use_test:
   st.session_state['df'] = df
 
 if upload_file:
+  st.session_state["file_name"] = upload_file.name
   st.markdown("""
               ## File Uploaded!""")
   with st.spinner("Reading File"):
@@ -59,10 +61,17 @@ if upload_file:
 
 if df is not None:
   st.dataframe(df)
-  profile = get_profile(df)
+  with st.spinner("Generating Report"):
+    profile = get_profile(df)
+
   with st.expander("Report", expanded=True):
     stprofile.st_profile_report(profile)
-
+  profile_file = profile.to_html().encode('utf-8')
+  report_name=""
+  if st.session_state.get("file_name", None) is not None:
+    report_name = st.session_state.get("file_name", None).split(".")[0]
+  st.download_button("Download Report", profile_file, file_name=f"{report_name}_report.html")
+  
   
 
   
