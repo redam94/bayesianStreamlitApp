@@ -11,16 +11,12 @@ import sklearn.pipeline as pipeline
 
 class Sampler:
   
-  def make_adaptive_sampler(sampler):
-    return lambda model, n_samples: sampler(model, n_samples, tune=1000, target_accept=0.9)
-    
+  
+  _ADVI_STEPS = 100_000
   _SAMPLER_MAP = {
     "Metropolis": pm.Metropolis, 
     "NUTS": pm.NUTS, 
     "HMC": pm.HamiltonianMC,
-    "NUTS_adapt": make_adaptive_sampler(pm.NUTS), 
-    "Metropolis_adapt": make_adaptive_sampler(pm.Metropolis),
-    "HMC_adapt": make_adaptive_sampler(pm.HamiltonianMC),
     "ADVI": pm.ADVI,
     "FullRankADVI": pm.FullRankADVI,
     }
@@ -33,10 +29,15 @@ class Sampler:
   def sample(self, model, n_samples):
     with model:
       sample_method = self._SAMPLER_MAP[self.sampler]
+      
       if self.sampler in ["ADVI", "FullRankADVI"]:
-        inference = sample_method()
-        approx_dist = inference.fit(n_samples, method=inference)
-        return approx_dist
+        self._inference = sample_method()
+        self._approx_dist = pm.fit(self._ADVI_STEPS, method=self._inference)
+        self.trace = self._approx_dist.sample(draws=n_samples)
+        return self.trace
+      self.trace = pm.sample(n_samples, tune=n_samples//2, step=sample_method())
+      
+      
       
     
     
