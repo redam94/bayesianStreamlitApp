@@ -4,5 +4,5 @@ port = 8501
 
 
 [browser]
-serverAddress = "bayes_regression.machineintelligence.ddns.net"
+serverAddress = "localhost"
 serverPort=8501
