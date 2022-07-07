@@ -13,13 +13,21 @@ period_var = st.session_state.get("period_var_old", None)
 inference = st.session_state.get("inference", None)
 trace = st.session_state.get("trace", None)
 
-index = 0
+dependent_index = 0
 if df is not None:
   for i in range(len(df.columns)):
-    index = i
+    dependent_index = i
     if df.columns[i] == dependent_var:
       break
-  st.session_state["index"] = index
+  st.session_state["dependent_index"] = dependent_index
+  
+period_index = 0
+if df is not None:
+  for i in range(len(df.columns)):
+    period_index = i
+    if df.columns[i] == period_var:
+      break
+  st.session_state["period_index"] = period_index
 
 def model_selection_form_control():
   st.session_state["inference"] = None
@@ -38,8 +46,8 @@ if df is not None:
     
     media_vars_new = st.multiselect("Select Media Variables", column_names, key="media_vars", default=media_vars)
     control_vars_new = st.multiselect("Select Control Variables", column_names, key="control_vars", default=control_vars)
-    dependent_var_new = st.selectbox("Select Dependent Variable", column_names, key="dependent_var", index=index)
-    period_var_new = st.selectbox("Select Period Variable", column_names, key="period_var")
+    dependent_var_new = st.selectbox("Select Dependent Variable", column_names, key="dependent_var", index=dependent_index)
+    period_var_new = st.selectbox("Select Period Variable", column_names, key="period_var", index=period_index)
     geos_new = st.multiselect("Select Geography Columns", column_names, key="geos", default=geos)
     if geos_new is not None:
       num_geos=1

@@ -59,10 +59,10 @@ def create_model(df, media_col_names, dependent_col_names, control_col_names=Non
     incremental_sales_media = 0
     if media_col_names:
       media_vars = pm.Data("media_vars", media_vars , dims=["ids", "media_cols"])
-      media_coeffs_mu = pm.Normal("media_coeffs_mu", sigma=100, dims="media_cols")
+      media_coeffs_mu = pm.Normal("media_coeffs_mu", sigma=300, dims="media_cols")
       if geo_col_names:
         media_coeffs_geos = pm.Normal("media_coeffs_geos", sigma=1, dims=["geos", "media_cols"])
-        media_coeffs_sigma = pm.HalfCauchy("media_coeffs_sigma", 5)
+        media_coeffs_sigma = pm.HalfCauchy("media_coeffs_sigma", 1)
         media_coeffs = pm.Deterministic("media_coeffs", media_coeffs_mu + media_coeffs_geos*media_coeffs_sigma, dims=["geos", "media_cols"])
       else:
         media_coeffs = pm.Deterministic("media_coeffs", media_coeffs_mu, dims="media_cols")
@@ -109,18 +109,4 @@ def run_inference(model):
 
 def make_predictor(df, model, approx):
   
-  x = tt.matrix("X")
-  geos = tt.vector("geos", dtype='int64')
-  n = tt.iscalar("n")
-  x.tag.test_value = np.empty_like(df[[f"X{i}" for i in range(1, 1+n_cols)]][:10])
-  geos.tag.test_value = np.empty_like(df_test['Geo'][:10])
-  n.tag.test_value = 100
-  _sample_proba = approx.sample_node(test_model.incremental_sales_like.distribution.mean, 
-                                   size=n, 
-                                   more_replacements={test_model["x"]: x, test_model["geographies"]: geos})
-  _sample_contributions = approx.sample_node(test_model.Channel_contributions,
-                                           size=n,
-                                           more_replacements={test_model["x"]: x, test_model["geographies"]:geos})
-
-  sample_proba = theano.function([x, geos, n], _sample_proba)
-  sample_contributions = theano.function([x, geos, n], _sample_contributions)
+  pass
